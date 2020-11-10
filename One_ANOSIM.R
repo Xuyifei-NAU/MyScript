@@ -1,3 +1,6 @@
+
+##改编自小白鱼的生统笔记代码
+
 One_ANOSIM <- function(otu,group,dis_method,p.adj,plot)
 {
   
