@@ -1,8 +1,6 @@
-##改编自小白鱼的生统笔记代码
 
-
-
-One_PERMANOVA <- function(otu,group,dis_method,p.adj)
+## 改编自 小白鱼的生统笔记
+One_PERMANOVA <- function(otu,group,dis_method,perm,p.adj)
 {
   ##dis_method可选 "manhattan", "euclidean", "canberra", "clark", "bray", "kulczynski", "jaccard", "gower", "altGower", "morisita", "horn", "mountford", "raup", "binomial", "chao", "cao" ,"mahalanobis".
   ##p.adj可选'bonferroni','holm','hochberg','hommel','fdr'或'BH','BY','none'  
@@ -16,7 +14,7 @@ otu <- data.frame(t(otu))
 
 #（1）直接输入 OTU 丰度表，在参数中指定距离类型
 #使用dis_method距离测度
-adonis_result <- adonis(otu~site, group, distance = dis_method, permutations = 999)
+adonis_result <- adonis(otu~group[,2], group, distance = dis_method, permutations =perm)
 
 
 #查看结果，上述 3 条命令所计算的内容一致，以其中一个为例
@@ -43,15 +41,15 @@ group_name <-  unique(group[,2])
 adonis_result_two <- NULL
 for (i in 1:(length(group_name) - 1)) {
   for (j in (i + 1):length(group_name)) {
-    group_ij <- subset(group, site %in% c(group_name[i], group_name[j]))
-    otu_ij <- otu[group_ij$names, ]
-    adonis_result_otu_ij <- adonis(otu_ij~site, group_ij, permutations = 999, distance = dis_method)	#指定距离测度，基于 999 次置换
+    group_ij <- subset(group, group[,2] %in% c(group_name[i], group_name[j]))
+    otu_ij <- otu[group_ij[,1], ]
+    adonis_result_otu_ij <- adonis(otu_ij~group_ij[,2], group_ij, permutations = perm, distance = dis_method)	#指定距离测度，基于 999 次置换
     adonis_result_two <- rbind(adonis_result_two, c(paste(group_name[i], group_name[j], sep = '/'), dis_method, unlist(data.frame(adonis_result_otu_ij$aov.tab, check.names = FALSE)[1, ])))
   }
 }
 adonis_result_two <- data.frame(adonis_result_two, stringsAsFactors = FALSE)
 names(adonis_result_two) <- c('group', 'distance', 'Df', 'Sums of squares', 'Mean squares', 'F.Model', 'Variation (R2)', 'Pr (>F)')
-
+subset(group, group$Type =='BS')
 #可选添加 p 值校正，例如 Benjamini 校正
 adonis_result_two$'Pr (>F)' <- as.numeric(adonis_result_two$'Pr (>F)')
 adonis_result_two <- cbind(adonis_result_two,p.adjust(adonis_result_two$'Pr (>F)', method = p.adj))
