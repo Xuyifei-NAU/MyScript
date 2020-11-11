@@ -1,7 +1,7 @@
-
 ##改编自小白鱼的生统笔记代码
 
-One_ANOSIM <- function(otu,group,dis_method,p.adj,plot)
+
+One_ANOSIM <- function(otu,group,dis_method,perm,p.adj,plot)
 {
   
   ##dis_method可选 "manhattan", "euclidean", "canberra", "clark", "bray", "kulczynski", "jaccard", "gower", "altGower", "morisita", "horn", "mountford", "raup", "binomial", "chao", "cao" ,"mahalanobis".
@@ -13,7 +13,7 @@ otu <- data.frame(t(otu))
 
 #（1）直接输入 OTU 丰度表，在参数中指定距离类型
 #使用 Bray-Curtis 距离测度
-anosim_result <- anosim(otu, group$site, distance = 'bray', permutations = 999)
+anosim_result <- anosim(otu, group[,2], distance = 'bray', permutations = perm)
 
 output <- NULL
 output <- cbind(anosim_result$permutations,dis_method,anosim_result$signif,anosim_result$statistic)
@@ -46,10 +46,11 @@ group_name <- unique(group[,2])
 anosim_result_two <- NULL
 for (i in 1:(length(group_name) - 1)) {
   for (j in (i + 1):length(group_name)) {
-    group_ij <- subset(group, site %in% c(group_name[i], group_name[j]))
-    otu_ij <- otu[group_ij$names, ]
-    anosim_result_otu_ij <- anosim(otu_ij, group_ij$site, permutations = 999, distance = 'bray')	#Bray-Curtis 距离测度，基于 999 次置换
-    anosim_result_two <- rbind(anosim_result_two, c(paste(group_name[i], group_name[j], sep = '/'), 'Bray-Curtis', anosim_result_otu_ij$statistic, anosim_result_otu_ij$signif))
+    group_ij <- subset(group, group[,2] %in% c(group_name[i], group_name[j]))
+    otu_ij <- otu[group_ij[,1], ]
+    
+    anosim_result_otu_ij <- anosim(otu_ij, group_ij[,2], permutations = perm, distance = dis_method)	#Bray-Curtis 距离测度，基于 999 次置换
+    anosim_result_two <- rbind(anosim_result_two, c(paste(group_name[i], group_name[j], sep = '/'), dis_method, anosim_result_otu_ij$statistic, anosim_result_otu_ij$signif))
     
     if (plot==TRUE){
     #每次循环输出图片
@@ -77,4 +78,5 @@ write.table(anosim_result_two, 'anosim_result/ANOSIM.result_two.txt', row.names 
 result <- list(anosim_result,anosim_result_two)
 return(result)
 }
+
 
