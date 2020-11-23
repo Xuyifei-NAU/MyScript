@@ -1,5 +1,5 @@
-
-
+## 原创于https://mp.weixin.qq.com/s/ku14d7xG4fFvSPsFKmU2Wg
+## 此处仅做修改并分享
 
 downarticle_fromsogou <- function(searchkey, maxpage = 2,output = 'xlsx') {
   
