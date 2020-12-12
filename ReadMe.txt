@@ -61,3 +61,9 @@ Out[[2]] #查看两两比较的差异
 source('/Users/Xuyifei/MyScript/download_article.R',local = T)
 downarticle_fromsogou(searchkey = 'R语言+PCA')
 downarticle_fromsogou(searchkey = 'R语言+PCA',output = 'csv')
+
+
+
+##jiojio.sh
+###用来批量讲多行的序列合并为一行的
+###可以修改脚本中识别文件后缀
