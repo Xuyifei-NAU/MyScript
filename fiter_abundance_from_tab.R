@@ -56,10 +56,11 @@ tax <- read.table(opts$taxtab,header = T,row.names= 1, sep="\t", comment.char = 
 # 筛选统计 ----------------------------------------------------------------------
 
 
-otutab <- t(otutab)
-otutab <- otutab/rowSums(otutab)
-otutab <- t(otutab)
-filter_result <- otutab[which(rowSums(otutab)>=(opts$threshold)/100 ),]
+otutab1 <- t(otutab)
+otutab1 <- otutab1/rowSums(otutab1)
+otutab1 <- t(otutab1)
+filter_result <- otutab1[which(rowSums(otutab1)>=(opts$threshold)/100 ),]*100
+
 # OTU丰度筛选阈值，默认0.1%，主要为圈图展示合适数据的OTU
 
 ## 提取otu的id
