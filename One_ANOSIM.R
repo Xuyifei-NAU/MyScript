@@ -79,4 +79,3 @@ result <- list(anosim_result,anosim_result_two)
 return(result)
 }
 
-

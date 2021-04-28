@@ -96,3 +96,65 @@ filter_tax <- filter_tax[,-1]
 write.table(data.frame ("OUTID"= rownames(filter_otu), filter_otu),file=paste(opts$output,sep="") ,append = F, sep = '\t',quote = F,  row.names = F, col.names = T)
 write.table(data.frame ("OUTID"= rownames(filter_tax), filter_tax),file=paste(opts$outtax,sep="") ,append = F, sep = '\t',quote = F,  row.names = F, col.names = T)
 write.table(data.frame ("OUTID"= rownames(filter_result), filter_result),file=paste(opts$relativeab,sep="") ,append = F, sep = '\t',quote = F,  row.names = F, col.names = T)
+
+
+
+# 分割线 ---------------------------------------------------------------------
+
+#
+# #
+# setwd("~/Test_data/18S")
+# design <- read.table('metadata.txt',header = T,row.names= 1, sep="\t", comment.char = "", stringsAsFactors = F)
+# otutab = read.table('otu_table.txt', header=T, row.names= 1, sep="\t", comment.char = "", stringsAsFactors = F)
+# tax <- read.table('taxonomy.txt',header = T,row.names= 1, sep="\t", comment.char = "", stringsAsFactors = F)
+# 
+# 
+# otutab <- t(otutab)
+# otutab <- otutab/rowSums(otutab)
+# otutab <- t(otutab)
+# filter_result <- otutab[which(rowSums(otutab)/length(colnames(otutab))>=(opts$threshold)/100 ),]
+# 
+# ## 提取otu的id
+# id <- rownames(filter_result)
+# len <- length(id)
+# filter_tax <- tax[rownames(tax)%in%id,]
+# 
+# ##filter_result$sum
+# ##design
+# 
+# ##t(filter_result)
+# 
+# ## 合并设计表与筛选后的丰度表
+# dat_m <- merge(t(filter_result),design,by='row.names')[,-1]
+# sum <- aggregate(dat_m[,c(1:len)],by= list(dat_m[,1+len]),FUN=sum)
+# ##mean <- aggregate(dat_m[,c(1:len)],by= list(dat_m[,1+len]),FUN=mean)
+# rownames(sum) <- sum[,1]
+# sum <- sum[,-1]
+# ## 合并丰度以及分类
+# filter_tax <- merge(filter_tax,t(sum),by='row.names')
+# rownames(filter_tax) <- filter_tax[,1]
+# filter_tax <- filter_tax[,-1]
+# ## 添加一个otu在所有样本中的总丰度
+# #filter_tax$mean <- rowSums(filter_result)/len
+# filter_tax <- merge(filter_tax, data.frame(mean=rowSums(filter_result)/len),by='row.names')
+# rownames(filter_tax) <- filter_tax[,1]
+# filter_tax <- filter_tax[,-1]
+
+
+# -------------------------------------------------------------------------
+
+
+# library(vegan)
+# test1 <- data.frame(
+#   S1=c(1,2,3),
+#   S2=c(4,5,6),
+#   S3=c(7,8,9)
+# )
+# rownames(test1) <- c('O1','O2','O3')
+# 
+# norm = t(t(test1)/colSums(test1,na=T)) * 100
+# 
+# (test1 <- t(test1))
+# (test1 <- test1/rowSums(test1))
+
+
