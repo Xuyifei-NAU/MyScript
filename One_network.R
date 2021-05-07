@@ -1,70 +1,37 @@
-One_network <- function(normtab,tax,rank='OTU',abundance = 0.005,appear='none',num='none',cor_type = 'spearman',
+One_network <- function(normtab,tax,rank='OTU',abundance = 0,appear='none',num='none',cor_type = 'spearman',
                         P.adj = 'BH',rt=0.7,pt=0.05){
 ### 准备工作
-  # setwd('~/Test_Data/18S')
-  # library(ggplot2)
-  # library(ggtreeExtra)
-  # library(ggtree)
-  # library(phyloseq)
-  # library(reshape2)
-  # library(dplyr)
-  # library(ape)
-  # library(tidyr)
-  # library(ggprism)
   # tax_sum <- read.delim('taxonomy.txt',header = T,stringsAsFactors = F,row.names = 1)
-  # tax_filter <- read.delim('without_unknow_taxonomy.txt',header = T,stringsAsFactors = F,row.names = 1)
   # otu <- read.delim('otu_table.txt',header = T,stringsAsFactors = F,row.names = 1)
   # design <- read.delim('metadata.txt',header = T,stringsAsFactors = F,row.names = 1)
   # ptree <- read.tree('tree.nwk')
-  # # 设置中文字体
-  # par(family=MyFonts[1])
-  # # 构建phyloseq对象
-  # ps <- phyloseq(
-  #   OTU=otu_table(otu,taxa_are_rows = TRUE),
-  #   TAX <- tax_table(as.matrix(tax_sum)),
-  #   sampledata <- sample_data(design),
-  #   ptree
-  # )
-  # 
-  # # 2 抽平 
-  # library(vegan)
-  # ## 先对数据进行转制
-  # otu_t <- t(otu)
-  # head(otu_t)
-  # ## 计算抽平的阈值
-  # raremin <- min(rowSums(otu_t))
-  # ## 抽平
-  # set.seed(888)
-  # otu_rare <- rrarefy(otu_t,raremin)
-  # ## 查看抽平后sum是否一致
-  # rowSums(otu_rare)
-  # ## 稀释曲线
-  # rarecurve(otu_rare,step=1000,sample=raremin,xlab = "Reads", ylab = "Species",label = F,main="抽平后") # 抽平之后的情况
-  # rarecurve(otu_t,step=10000,xlab = "Reads", ylab = "Species",label = F,col = "blue", cex = 0.6,main="抽平前") # 抽平之前的情况
-  # 
-  # ## 转制回去
-  # otu_dat <- t(otu_rare)
+  
+  ## 对otu表格进行标准化（求相对丰度）
+  # norm_otu <- as.data.frame(t(t(otu)/colSums(otu)))
   
   #可选事先过滤一些低丰度或低频的类群
   # normtab = norm_otu
   # tax = tax_sum
   # rank='OTU'
-  # abundance = 0.005 # 筛选丰度 常见的还有0.0001（万分之一）
+  # abundance = 0 # 筛选丰度 常见的还有0.0001（万分之一）
   # appear='none' # 样本出现次数阈值
   # num='none' # otu或其他分类级的总数
   # cor_type = 'spearman'
-  # P.adj = 'BH'
+  # P.adj = 'BH' ## "Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH", "TSBH".
   # rt=0.7
   # pt=0.05
   
 ### 正文
 library(Hmisc)
 library(psych)
+  
+  
+# 1 根据相对丰度、otu出现的次数、或者需要的otu数目进行筛选----
 ## abundance的筛选
-if (abundance != 'none'){
-# filtered_otu <- normtab[which(rowSums(normtab) >= abundance), ]    #例如只保留相对丰度总和高于 0.005 的属
-filtered_otu <- normtab[which(rowMeans(normtab) >= abundance), ]    #按照平均相对丰度算
-}
+
+# filtered_otu <- normtab[which(rowSums(normtab) >= abundance), ]    # 按照相对丰度之和筛选
+filtered_otu <- normtab[which(rowMeans(normtab) >= abundance), ]    # 按照平均相对丰度筛选
+
 
 ## appear的筛选
 if (appear != 'none'){
@@ -81,64 +48,79 @@ filtered_otu <- filtered_otu[1:num,!names(filtered_otu) %in% c("mean")]
 filtered_otu <- filtered_otu[,!names(filtered_otu) %in% c("mean")] # 把生成的mean删除
  }
 
-#计算两属之间是否存在丰度变化的相关性，以 spearman 相关系数为例
-  if(ncol(filtered_otu)>4) {
-    otu_corr <- rcorr(t(filtered_otu), type = cor_type)
-    
-    #阈值筛选
-    #将 spearman 相关系数低于 0.7 的关系剔除，即 r>=0.7
-    r <- otu_corr$r
-    # r[is.na(r)] <- 0
-    r[abs(r) < rt] <- 0  
-    
-    #选取显著性 p 值小于 0.05 的相关系数，即 p<0.05
-    p <- otu_corr$P
-    # p[is.na(p)] <- 0
-    p <- p.adjust(p, method = P.adj)    #可选 p 值校正，这里使用 BH 法校正 p 值
-    p[p>=pt] <- -1
-    p[p<pt & p>=0] <- 1
-    p[p==-1] <- 0
-  } else{
-    otu_corr <- corr.test(t(filtered_otu),method = cor_type,use='complete',adjust =P.adj,ci=F)
-    #阈值筛选
-    #将 spearman 相关系数低于 0.7 的关系剔除，即 r>=0.7
-    r <- otu_corr$r
-    r[is.na(r)] <- 0
-    r[abs(r) < rt] <- 0 
-    #选取显著性 p 值小于 0.05 的相关系数，即 p<0.05
-    p <- otu_corr$p
-    p[is.na(p)] <- 0
-    p[p>=pt] <- -1
-    p[p<pt & p>=0] <- 1
-    p[p==-1] <- 0
-  }
 
-  #根据上述筛选的 r 值和 p 值保留数据
-  z <- r * p
-  diag(z) <- 0    #将相关矩阵中对角线中的值（代表了自相关）转为 0
-  head(z)[1:6,1:6]
-  z[is.na(z)] <- 0
-  # 如此便得到了邻接矩阵格式的网络文件（微生物属的相关系数矩阵）
-  # write.table(data.frame(z, check.names = FALSE), 'network/otu_corr.matrix.txt', col.names = NA, sep = '\t', quote = FALSE)
-  
+# 2 计算相关性值以及p值，并构建邻接矩阵-----
+occor<-WGCNA::corAndPvalue(t(filtered_otu),method = c( "spearman"))
+# multiple test the p values
+mtadj<-multtest::mt.rawp2adjp(unlist(occor$p),proc=P.adj)
+adpcor<-mtadj$adjp[order(mtadj$index),2]
+occor.p<-matrix(adpcor,dim(t(filtered_otu))[2])
+##R值
+occor.r<-occor$cor
+# 确定物种间存在相互作用关系的阈值，将相关性R矩阵内不符合的数据转换为0
+occor.r[occor.p>pt|abs(occor.r)<rt] = 0 
 
-# 15.2 igraph构建网络 --------------------------------------------------------------
+
+
+######## 分割线 （原始代码）START--------
+# #计算两属之间是否存在丰度变化的相关性，以 spearman 相关系数为例
+#   if(ncol(filtered_otu)>4) {
+#     otu_corr <- rcorr(t(filtered_otu), type = cor_type)
+#     
+#     #阈值筛选
+#     #将 spearman 相关系数低于 0.7 的关系剔除，即 r>=0.7
+#     r <- otu_corr$r
+#     # r[is.na(r)] <- 0
+#     r[abs(r) < rt] <- 0  
+#     
+#     #选取显著性 p 值小于 0.05 的相关系数，即 p<0.05
+#     p <- otu_corr$P
+#     # p[is.na(p)] <- 0
+#     p <- p.adjust(p, method = P.adj)    #可选 p 值校正，这里使用 BH 法校正 p 值
+#     p[p>=pt] <- -1
+#     p[p<pt & p>=0] <- 1
+#     p[p==-1] <- 0
+#   } else{
+#     otu_corr <- corr.test(t(filtered_otu),method = cor_type,use='complete',adjust =P.adj,ci=F)
+#     #阈值筛选
+#     #将 spearman 相关系数低于 0.7 的关系剔除，即 r>=0.7
+#     r <- otu_corr$r
+#     r[is.na(r)] <- 0
+#     r[abs(r) < rt] <- 0 
+#     #选取显著性 p 值小于 0.05 的相关系数，即 p<0.05
+#     p <- otu_corr$p
+#     p[is.na(p)] <- 0
+#     p[p>=pt] <- -1
+#     p[p<pt & p>=0] <- 1
+#     p[p==-1] <- 0
+#   }
+# 
+#   #根据上述筛选的 r 值和 p 值保留数据
+#   z <- r * p
+#   diag(z) <- 0    #将相关矩阵中对角线中的值（代表了自相关）转为 0
+#   head(z)[1:6,1:6]
+#   z[is.na(z)] <- 0
+#   # 如此便得到了邻接矩阵格式的网络文件（微生物属的相关系数矩阵）
+#   # write.table(data.frame(z, check.names = FALSE), 'network/otu_corr.matrix.txt', col.names = NA, sep = '\t', quote = FALSE)
+#   ######## 分割线 （原始代码）END-------- 
+
+# 3 igraph构建网络 --------------------------------------------------------------
 ## 获得网络
-if(sum(z)!=0){
+if(sum(occor.r)!=0){
 library(igraph)
 library(dplyr)
 # 将邻接矩阵转化为 igraph 网络的邻接列表
 # 构建含权的无向网络，权重代表了微生物属间丰度的 spearman 相关系数
 # z <- read.delim('network/otu_corr.matrix.txt', row.names = 1, sep = '\t', check.names = FALSE)
-g <- graph.adjacency(as.matrix(z), weighted = TRUE, mode = 'undirected')
+g <- graph.adjacency(as.matrix(occor.r), weighted = TRUE, mode = 'undirected')
 g
 
-#自相关也可以通过该式去除
+#去除自相关
 g <- simplify(g)
 #孤立节点的删除（删除度为 0 的节点）
 g <- delete.vertices(g, names(degree(g)[degree(g) == 0]) )
 
-# 15.3 添加其他信息 -------------------------------------------------------------
+# 4 计算网络节点和边的属性-------------------------------------------------------------
 #该模式下，边权重代表了相关系数
 #由于权重通常为正值，因此最好取个绝对值，相关系数重新复制一列
 E(g)$correlation <- E(g)$weight
@@ -181,9 +163,10 @@ V(g)$degree
 V(g)$weight_degree <- strength(g)
 V(g)$weight_degree
 
-#接近中心性（Closeness centrality）
-V(g)$closeness_centrality <- closeness(g)
-V(g)$closeness_centrality
+#接近中心性（Closeness centrality）(有两种算法，暂时不知道哪种是对的)
+V(g)$closeness_centrality1 <- closeness(g)
+V(g)$closeness_centrality2 <- centralization.closeness(g)$res
+
 
 #介数中心性（Betweenness centrality）
 V(g)$betweenness_centrality <- betweenness(g)
@@ -203,7 +186,7 @@ modularity <- modularity(g, membership(fc))
 
 
 #模块划分，详情 ?cluster_fast_greedy，有多种模型
-set.seed(123)
+set.seed(888)
 V(g)$modularity <- membership(cluster_fast_greedy(g))
 
 # 计算模块内连通度（Zi）和模块间连通度（Pi）
@@ -216,7 +199,7 @@ nodes_list <- data.frame(
 )
 rownames(nodes_list) <-  nodes_list$nodes_id
 #两个文件的节点顺序要一致
-z2 <- z[V(g)$name,V(g)$name]
+z2 <- occor.r[V(g)$name,V(g)$name]
 nodes_list <- nodes_list[rownames(z2), ]
 #计算模块内连通度（Zi）和模块间连通度（Pi）
 #指定邻接矩阵、节点列表、节点列表中节点度和模块度的列名称
@@ -226,13 +209,14 @@ head(zi_pi)
 V(g)$within_module_connectivities <- zi_pi$within_module_connectivities
 V(g)$among_module_connectivities <- zi_pi$among_module_connectivities
 
-## 汇总节点表和边的表格
+## 4.1 汇总节点的表格 ----
 nodes <- data.frame(
   nodes_id = V(g)$name, 
   degree = V(g)$degree, 
   modularity = V(g)$modularity,
   weight_degree = V(g)$weight_degree,
-  closeness_centrality = V(g)$closeness_centrality,
+  closeness_centrality1 = V(g)$closeness_centrality1,
+  closeness_centrality2 = V(g)$closeness_centrality2,
   betweenness_centrality = V(g)$betweenness_centrality,
   eigenvector_centrality = V(g)$eigenvector_centrality,
   within_module_connectivities = V(g)$within_module_connectivities,
@@ -244,7 +228,7 @@ nodes <- data.frame(
   family = V(g)$family,
   genus = V(g)$genus
 )
-
+## 4.2 汇总边的表格 ----
 edge <- data.frame(as_edgelist(g))    #igraph 的邻接列表转为边列表
 edges <- data.frame(
   source = edge[[1]],
@@ -256,7 +240,7 @@ edges <- data.frame(
 )
 
 
-# 网络特征计算 ------------------------------------------------------------------
+# 5 网络特征计算 ------------------------------------------------------------------
 
 #节点数量（number of nodes）和边数量（number of edges）
 nodes_num <- length(V(g))
@@ -315,7 +299,7 @@ modularity
 #reciprocity(g, mode = 'default')
 #reciprocity(g, mode = 'ratio')
 
-#选择部分做个汇总输出
+# 5.1 选择部分做个汇总输出 ----
 network_character <- data.frame(
   nodes_num,    #节点数量（number of nodes）
   edges_num,    #边数量（number of edges）
@@ -330,14 +314,10 @@ network_character <- data.frame(
   degree_centralization,    #度中心性
   modularity    #模块性（modularity）
 )
-network_character
 
-# -------------------------------------------------------------------------
+# 6 汇总结果的列表 -------------------------------------------------------------------------
 
-
-
-
-res <- list(g=g,nodes_list=nodes,edges_list=edges,network_character=network_character,z=z)
+res <- list(g=g,nodes_list=nodes,edges_list=edges,network_character=network_character,cormat=occor.r)
 } else res = 'Unable to form a network'
 
 return(res)
